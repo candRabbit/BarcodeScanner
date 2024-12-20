@@ -2,7 +2,7 @@ import UIKit
 import AVFoundation
 
 /// Delegate to handle camera setup and video capturing.
-protocol CameraViewControllerDelegate: AnyObject {
+protocol CameraViewControllerDelegate: class {
   func cameraViewControllerDidSetupCaptureSession(_ controller: CameraViewController)
   func cameraViewControllerDidFailToSetupCaptureSession(_ controller: CameraViewController)
   func cameraViewController(_ controller: CameraViewController, didReceiveError error: Error)
@@ -19,7 +19,6 @@ public final class CameraViewController: UIViewController {
 
   /// Focus view type.
   public var barCodeFocusViewType: FocusViewType = .animated
-  public var initialCameraPosition: AVCaptureDevice.Position = .back
   public var showsCameraButton: Bool = false {
     didSet {
       cameraButton.isHidden = showsCameraButton
@@ -93,7 +92,7 @@ public final class CameraViewController: UIViewController {
     view.backgroundColor = .black
     videoPreviewLayer = AVCaptureVideoPreviewLayer(session: self.captureSession)
     videoPreviewLayer?.videoGravity = .resizeAspectFill
-
+    videoPreviewLayer?.frame = UIScreen.main.bounds
     guard let videoPreviewLayer = videoPreviewLayer else {
       return
     }
@@ -134,9 +133,9 @@ public final class CameraViewController: UIViewController {
     }
 
     torchMode = .off
-    DispatchQueue.global(qos: .background).async {
-      self.captureSession.startRunning()
-    }
+      DispatchQueue.global().async {[weak self] in
+          self?.captureSession.startRunning()
+      }
     focusView.isHidden = false
     flashButton.isHidden = captureDevice?.position == .front
     cameraButton.isHidden = !showsCameraButton
@@ -216,7 +215,7 @@ public final class CameraViewController: UIViewController {
       }
 
       if error == nil {
-        strongSelf.setupSessionInput(for: strongSelf.initialCameraPosition)
+        strongSelf.setupSessionInput(for: .back)
         strongSelf.setupSessionOutput()
         strongSelf.delegate?.cameraViewControllerDidSetupCaptureSession(strongSelf)
       } else {
@@ -377,7 +376,7 @@ private extension CameraViewController {
       return
     }
 
-    videoPreviewLayer.frame = view.layer.bounds
+    videoPreviewLayer.frame = UIScreen.main.bounds
 
     if let connection = videoPreviewLayer.connection, connection.isVideoOrientationSupported {
       switch UIApplication.shared.statusBarOrientation {
